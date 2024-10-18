@@ -1,0 +1,64 @@
+from searchPlus import *
+from sokoban import *
+from ProblemaGrafoHs import *
+
+
+def beam_search_plus_count(problem, W, f):
+    """Beam Search: search the nodes with the best W scores in each depth.
+       Return the solution and how many nodes were expanded."""
+    f = memoize(f, 'f')
+    node = Node(problem.initial)
+    
+    if problem.goal_test(node.state):
+        return node,0
+    
+    frontier = [node]
+    explored = set()
+    nr_expanded = 0
+    
+    while frontier:
+        frontier = sorted(frontier, key=f)[:W]
+        next_frontier = []
+        
+        for node in frontier:
+            if problem.goal_test(node.state):
+                return node, nr_expanded
+            
+            explored.add(node.state)
+            nr_expanded += 1
+            
+            for child in node.expand(problem):
+                if child.state not in explored and child not in next_frontier:
+                    next_frontier.append(child)
+        
+        frontier = next_frontier 
+    
+    return None, nr_expanded
+
+def beam_search(problem, W, h=None):
+    """Beam graph search with f(n) = g(n)+h(n).
+    You need to specify W and the h function when you call beam_search, or
+    else in your Problem subclass."""
+    h = memoize(h or problem.h, 'h')
+    return beam_search_plus_count(problem, W, lambda n: n.path_cost + h(n))
+
+
+def IW_beam_search(problem, h):
+    """IW_beam_search (Iterative Widening Beam Search) começa com beam width W=1 e aumenta W iterativamente até
+    se obter uma solução. Devolve a solução, o W com que se encontrou a solução, e o número total (acumulado desde W=1)
+    de nós expandidos. Assume-se que existe uma solução."""
+    W = 1
+    node = Node(problem.initial)
+    total_expanded_nodes = 0
+    
+    while not problem.goal_test(node.state):
+        solution,nr_expanded_nodes = beam_search_plus_count(problem,W,h)
+        
+        total_expanded_nodes += nr_expanded_nodes
+        
+        if solution is not None:
+            return solution, W, total_expanded_nodes
+      
+        W += 1
+        
+    
