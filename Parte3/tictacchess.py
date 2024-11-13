@@ -7,7 +7,7 @@ def in_row(cells):
         return True
     else:
         return False
-
+        
 def is_diagonal(coords):
     x0, y0 = coords[0]
     x1, y1 = coords[1]
@@ -19,7 +19,7 @@ def is_diagonal(coords):
         if (y - y0 == 0) or ((x - x0) / (y - y0) != slope):
             return False
     return True
-
+    
 def is_line(coords):
     x0, y0 = coords[0]
     if all(x == x0 for x, y in coords) or all(y == y0 for x, y in coords):
@@ -27,48 +27,53 @@ def is_line(coords):
     else:
         return False
 
-
+    
 MAX_JOGADAS = 500
 
 stateTicTacChess = namedtuple('stateTicTacChess', 'to_move, board, n_jogadas, n_capturas, pawn_direction, last_piece')
 
 class EstadoTicTacChess(stateTicTacChess):
-
+    
     def player_pieces(self,player):
         """Returns all symbols used for the pieces of player"""
         return {'C', 'B', 'T', 'P'} if player == 'WHITE' else {'c', 'b', 't', 'p'}
-
+    
     def used_pieces(self):
         """Returns all used pieces"""
         return self.board.keys()
-
+    
     def player_used_pieces(self,player):
         """Returns all used pieces of player"""
         return [piece for piece in self.used_pieces() if piece in self.player_pieces(player)]
-
+    
     def player_used_cells(self,player):
         """Returns all used cells and pieces of player"""
         pieces = self.player_used_pieces(player)
         squares = [self.board[key] for key in pieces]
         return squares, pieces
-
-    def empty_cells(self):
+    
+    def empty_cells(self,state):
         """Returns all empty cells"""
         return [(x,y) for x in range(self.h) for y in range(self.v) if (x,y) not in self.board.values()]
-
+    
     def next_state(self,action):
         """Execute action from self (state). Put piece in square replacing whatever was there (maybe nothing).
-        If pawn entered board, movement is forward. If there was a capture, increment counter. Increment n_jogadas."""
+        If pawn is at end of board, redefine direction. If there was a capture, increment counter. Increment n_jogadas."""
         board = self.board.copy()
         n_capturas = self.n_capturas.copy()
         pawn_direction = self.pawn_direction.copy()
         piece, loc = action
-        # se a peça é um peão, se está no final do tabuleiro inverte a direção:
-        if piece == 'P' or piece == 'p':
-            if piece == 'P' and loc[0] == 0:
-                pawn_direction[0] = -1 * pawn_direction[0]
-            if piece == 'p' and loc[0] == self.v - 1:
-                pawn_direction[1] = -1 * pawn_direction[1]
+        # se a peça é um peão, se está no final do tabuleiro redefine a sua direção:
+        if piece == 'P':
+            if loc[0] == 0:
+                pawn_direction[0] = -1
+            elif loc[0] == self.v - 1:
+                pawn_direction[0] = 1
+        if piece == 'p':
+            if loc[0] == 0:
+                pawn_direction[1] = 1
+            elif loc[0] == self.v - 1:
+                pawn_direction[1] = -1
         # se temos nova captura, incrementa contador:
         if loc in self.board.values():
             if self.to_move == 'WHITE':
@@ -96,22 +101,22 @@ class EstadoTicTacChess(stateTicTacChess):
         n_jogadas = self.n_jogadas + 1
         last_piece = piece
         return EstadoTicTacChess(to_move=self.other(),board=board,n_jogadas=n_jogadas,n_capturas=n_capturas,pawn_direction=pawn_direction,last_piece=last_piece)
-
+    
     def possible_moves(self,piece):
         loc = self.board[piece]
         if piece == 'C' or piece == 'c':
-            list_moves = self.knight_possible_moves(loc)
+            list_moves = self.knight_possible_moves(loc)      
         if piece == 'B' or piece == 'b':
             directions = [(+1,+1),(+1,-1),(-1,+1),(-1,-1)]
             list_moves = self.bishop_rook_possible_moves(loc,directions)
         if piece == 'T' or piece == 't':
             directions = [(+1,0),(-1,0),(0,+1),(0,-1)]
             list_moves = self.bishop_rook_possible_moves(loc,directions)
-        if piece == 'P' or piece =='p':
+        if piece == 'P' or piece =='p': 
             list_moves = self.pawn_possible_moves(piece,loc)
-        list_moves = [(piece,mov) for mov in list_moves]
+        list_moves = [(piece,mov) for mov in list_moves]   
         return list_moves
-
+    
     def knight_possible_moves(self,loc):
         # list all new locations based on piece behavior:
         deltas = [(+1,+2),(+1,-2),(-1,+2),(-1,-2),(+2,+1),(+2,-1),(-2,+1),(-2,-1)]
@@ -122,7 +127,7 @@ class EstadoTicTacChess(stateTicTacChess):
         my_cells,_ = self.player_used_cells(self.to_move)
         movements = [(x,y) for (x,y) in movements if (x,y) not in my_cells]
         return movements
-
+    
     def bishop_rook_possible_moves(self,loc,directions):
         movements = []
         # list all new locations on all directions still within the board:
@@ -140,7 +145,7 @@ class EstadoTicTacChess(stateTicTacChess):
                     x += delta[0]
                     y += delta[1]
         return movements
-
+    
     def pawn_possible_moves(self,piece,loc):
         # list all new locations based on piece behavior:
         # (need to know which direction (+1 or -1) the pawn is moving, and whether there are opponents in possible new locs)
@@ -151,22 +156,22 @@ class EstadoTicTacChess(stateTicTacChess):
         else:
             #new_straight_loc = (loc[0]+self.pawn_direction[0],loc[1])
             #new_diagonal_loc1 = (loc[0]+self.pawn_direction[0],loc[1]+1)
-            #new_diagonal_loc2 = (loc[0]+self.pawn_direction[0],loc[1]-1)
+            #new_diagonal_loc2 = (loc[0]+self.pawn_direction[0],loc[1]-1)           
             new_straight_loc = (loc[0]+self.pawn_direction[1],loc[1])
             new_diagonal_loc1 = (loc[0]+self.pawn_direction[1],loc[1]+1)
-            new_diagonal_loc2 = (loc[0]+self.pawn_direction[1],loc[1]-1)
+            new_diagonal_loc2 = (loc[0]+self.pawn_direction[1],loc[1]-1)           
         movements = []
         if new_straight_loc not in self.board.values(): # pawn can only move if no one is blocking it
             movements.append(new_straight_loc)
         opponent_cells, opponent_pieces = self.player_used_cells(self.other())
         if new_diagonal_loc1 in opponent_cells: # pawn can move diagonally to take an opponent's piece
-            movements.append(new_diagonal_loc1)
+            movements.append(new_diagonal_loc1) 
         if new_diagonal_loc2 in opponent_cells:
-            movements.append(new_diagonal_loc2)
+            movements.append(new_diagonal_loc2) 
         # filter out the locations outside the board:
         movements = [(x,y) for (x,y) in movements if x in range(self.h) and y in range(self.v)]
         return movements
-
+        
     def n_in_row(self,n):
         "Return the player or players who have n-in-row (maybe Both), or None."
         #(play,board,jogadas,capturas,pawn_direction,piece)=self
@@ -175,7 +180,7 @@ class EstadoTicTacChess(stateTicTacChess):
         cells1,_ = self.player_used_cells(self.to_move)
         cells2,_ = self.player_used_cells(self.other())
         if len(cells1) < n and len(cells2) < n:
-            return None
+            return None     
         who_has = None
         if len(cells1) == n:
             cells1 = sorted(cells1)
@@ -209,10 +214,10 @@ class EstadoTicTacChess(stateTicTacChess):
     def other(self):
         """Who is the other, the one that is not the next to move"""
         return 'BLACK' if self.to_move == 'WHITE' else 'WHITE'
-
+    
     def have_winner(self):
         return self.n_in_row(4)
-
+            
     def display(self,h,v):
         """Display the state given the number of lines and columns"""
         board_items = self.board.items()
@@ -235,7 +240,7 @@ class EstadoTicTacChess(stateTicTacChess):
         for y in range(h):
             print(y, end=' ')
         print()
-
+        
 
 class TicTacChess(Game):
     """Play Tic Tac Chess on an h x v board (h is the height of the board, and v the width), with first player being 'WHITE'.
@@ -258,11 +263,11 @@ class TicTacChess(Game):
         my_pieces = state.player_pieces(state.to_move)
         stock = [piece for piece in my_pieces if piece not in state.used_pieces()] # pieces that player (to_move) has in stock
         for piece in stock:
-            empty = state.empty_cells()
+            empty = state.empty_cells(state)
             for square in empty:
                 list_actions.append((piece,square))
         # after 6 pieces on the board, actions can also be movements (anywhere except on top of my pieces):
-        if state.n_jogadas >= 6:
+        if state.n_jogadas >= 6: 
             my_used_pieces = state.player_used_pieces(state.to_move)
             for piece in my_used_pieces:
                 piece_possible_movements = state.possible_moves(piece)
@@ -276,17 +281,17 @@ class TicTacChess(Game):
     def result(self, state, action):
         "Execute action from state, returning next state"
         return state.next_state(action)
-
+        
     def utility(self, state, player):
         """Return the value to player; 1 for win, -1 for loss, 0 otherwise."""
         if state.n_jogadas == MAX_JOGADAS:
             return 0
         return 1 if player != state.to_move else -1 # != porque entretanto o to_move já mudou para o outro
-
+    
     def terminal_test(self, state):
         """A state is terminal if one of the players has 4 pieces in a row or if MAX_JOGADAS is reached."""
         return True if state.n_in_row(4) != None or state.n_jogadas == MAX_JOGADAS else False
-
+        
     def display(self, state):
         is_final = self.terminal_test(state);
         print("   Jogadas feitas:", state.n_jogadas)
