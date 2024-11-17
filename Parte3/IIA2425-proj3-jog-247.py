@@ -1,5 +1,6 @@
-from jogos import *
 from tictacchess import *
+from utils import *
+from jogos import *
 
 def func_247(state, player):
     clone=copy.deepcopy(state)
