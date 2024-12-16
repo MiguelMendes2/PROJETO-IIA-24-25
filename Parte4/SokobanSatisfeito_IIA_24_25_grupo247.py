@@ -12,33 +12,33 @@ def csp_possivel_solucao(caixas, goals_alcancaveis):
     return CSP(variables, domains, neighbors, constraints)
 
 def csp_find_alcancaveis_1goal(s, goal):
-    caixas = s.initial['caixas']
-    variables = list(s.navegaveis)
-    domains = {var: [0, 1] for var in variables}
-    neighbors = {var1: [var2 for var2 in variables if var1 != var2 and eh_vizinho(var1, var2, s, caixas)] for var1 in variables}
+    def handle_neighbors(var1, var2):
+        if (var1 not in s.navegaveis or var2 not in s.navegaveis):
+            return False
+        if abs(var1[0] - var2[0]) + abs(var1[1] - var2[1]) != 1:
+            return False
+        
+        x1,y1 = var1
+        x2,y2 = var2
+        
+        x0 = x1 + (x1-x2)
+        y0 = y1 + (y1-y2)
+        
+        return (x0,y0) in s.navegaveis
 
-
+    variables = s.navegaveis 
+    domains = {var: [1] if var == goal else ([0] if s.its_a_trap(var) else [0, 1]) for var in variables}
+    neighbors = {
+        var1: [var2 for var2 in variables if var1 != var2 and handle_neighbors(var1, var2)]
+        for var1 in variables
+    }
+    
     def constraints(var1, a, var2, b):
-        if var2 not in neighbors[var1]:
-            return True
-        if a == 1 and b == 0:
-            return False
-        if b == 1 and a == 0:
-            return False
-        return True
+        return not (a == 0 and b == 1)
 
     return CSP(variables, domains, neighbors, constraints)
 
-def eh_vizinho(celula1, celula2, s, caixas):
-    diff_linha = celula2[0] - celula1[0]
-    diff_coluna = celula2[1] - celula1[1]
-    deltas = diff_linha, diff_coluna
 
-    if s.possible(s.initial['sokoban'], caixas, deltas) and (abs(diff_linha) + abs(diff_coluna) == 1):
-        return True
-
-    return False
-    
 def find_alcancaveis_all_goals(s):
     sorted_goals = sorted(list(s.goal))
     result_alcancaveis = {}
