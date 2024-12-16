@@ -1,4 +1,7 @@
 # Nossas funcoes
+from sokoban_aval4 import *
+from csp_v3 import *
+
 def csp_possivel_solucao(caixas, goals_alcancaveis):
     variables = list(caixas)
     domains = {var: goals_alcancaveis[var] for var in variables}
@@ -38,7 +41,6 @@ def csp_find_alcancaveis_1goal(s, goal):
 
     return CSP(variables, domains, neighbors, constraints)
 
-
 def find_alcancaveis_all_goals(s):
     sorted_goals = sorted(list(s.goal))
     result_alcancaveis = {}
@@ -58,3 +60,14 @@ def find_alcancaveis_all_goals(s):
             result_alcancaveis[cell] = []
 
     return result_alcancaveis
+
+# Funcoes dadas
+def possivel_solucao(caixas,goals_alcancaveis):
+    csp_sokoban1 = csp_possivel_solucao(caixas,goals_alcancaveis) # <--- a vossa função csp_possivel_solucao 
+    r = backtracking_search(csp_sokoban1, inference = forward_checking)
+    return r
+    
+def find_alcancaveis_1goal(s,goal):
+    csp_sokoban2 = csp_find_alcancaveis_1goal(s,goal) # <--- a vossa função csp_find_alcancaveis_1goal 
+    r = backtracking_search(csp_sokoban2, order_domain_values = number_ascending_order, inference = forward_checking)    
+    return {} if r == None else r
